@@ -105,6 +105,17 @@
   #modal p{font-size:22px;margin:8px 0}
   #modal .jp{font-size:16px;color:#555}
 
+  .status{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;
+    background:#fff;border:4px solid #111;border-radius:14px;padding:6px 14px;font-size:clamp(16px,2.1vw,22px)}
+  .status .hearts{color:var(--red);font-size:1.5em;letter-spacing:2px;line-height:1}
+  .status small{color:#555;font-size:.7em}
+  #end{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:30;padding:16px}
+  #end .box{background:#fff;border:5px solid #111;border-radius:20px;padding:24px 30px;max-width:560px;width:100%;text-align:center}
+  #end h2{margin:0;font-size:clamp(40px,7vw,64px)}
+  #end h2.win{color:var(--green)} #end h2.lose{color:var(--red)}
+  #end p{font-size:clamp(20px,3vw,28px);margin:10px 0}
+  #end .jp{font-size:.7em;color:#555}
+
   /* portrait iPad */
   @media (orientation:portrait){
     #game{flex-direction:column}
@@ -158,6 +169,7 @@
       </div>
     </div>
     <div class="controls">
+      <div class="status"><span class="hearts" id="hearts"></span><span id="score"></span></div>
       <div class="btn-row">
         <button class="btn primary" id="peekBtn">Show / Hide<small>見る / かくす</small></button>
         <button class="btn" id="helpBtn">Help<small>ヒント</small></button>
@@ -212,16 +224,30 @@
   </div>
 </div>
 
+<!-- END -->
+<div id="end" class="hidden">
+  <div class="box">
+    <h2 id="eTitle"></h2>
+    <p id="eText"></p>
+    <p class="jp" id="eJp"></p>
+    <p id="eScore"></p>
+    <button class="big-btn" id="eNew" style="font-size:32px;padding:12px 40px">New game</button>
+  </div>
+</div>
+
 <!-- GUESS MODAL -->
 <div id="modal" class="hidden">
   <div class="box">
     <img id="gImg" alt="">
     <h2 id="gName"></h2>
     <p id="gText"></p>
-    <p class="jp">ペアの画面を見せてもらってね。</p>
+    <p class="jp">ペアに聞いて、答えをおしてね。</p>
     <div class="btn-row" style="margin-top:10px">
-      <button class="btn primary" id="gShow">Show my character<small>じぶんのキャラを見せる</small></button>
-      <button class="btn" id="gClose">Keep playing<small>つづける</small></button>
+      <button class="btn primary" id="gYes">Yes, it is!<small>せいかい！</small></button>
+      <button class="btn guess on" id="gNo">No, it isn’t<small>ちがう…</small></button>
+    </div>
+    <div class="btn-row" style="margin-top:8px">
+      <button class="btn" id="gCancel">Oops, go back<small>まちがえた・もどる</small></button>
     </div>
   </div>
 </div>
@@ -244,10 +270,12 @@ const CHARACTERS = [
 
 const $ = id => document.getElementById(id);
 const KEY = "guesswho-state-v1";
-let state = {secret:null, down:[], locked:[], started:false};
+let state = {secret:null, down:[], locked:[], lives:3, score:0, over:null, started:false};
+const MAX_LIVES = 3;
+let pending = null;
 
 function save(){ try{ sessionStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
-function load(){ try{ const s = JSON.parse(sessionStorage.getItem(KEY)); if(s && s.secret){ state = s; if(!state.locked) state.locked = []; } }catch(e){} }
+function load(){ try{ const s = JSON.parse(sessionStorage.getItem(KEY)); if(s && s.secret){ state = s; if(!state.locked) state.locked = []; if(state.lives==null) state.lives = MAX_LIVES; if(state.score==null) state.score = 0; if(state.over===undefined) state.over = null; } }catch(e){} }
 
 function buildGrid(){
   const g = $("grid"); g.innerHTML = "";
@@ -272,6 +300,8 @@ function render(){
     t.classList.toggle("down", state.down.includes(id) || state.locked.includes(id));
     t.classList.toggle("locked", state.locked.includes(id));
   });
+  $("hearts").textContent = "♥".repeat(state.lives) + "♡".repeat(MAX_LIVES - state.lives);
+  $("score").innerHTML = `Points: <b>${state.score}</b> <small>ポイント</small>`;
   const left = CHARACTERS.length - downCount();
   $("remain").textContent = `${left} left / のこり${left}`;
 }
@@ -286,14 +316,13 @@ function setGuessing(on){
 }
 
 function onTile(id){
+  if(state.over) return;
   if(guessing){
     if(state.locked.includes(id)) return;          // already guessed wrong
     const c = CHARACTERS.find(x=>x.id===id);
-    if(!state.locked.includes(id)) state.locked.push(id);
-    state.down = state.down.filter(x=>x!==id);
-    save(); render();
+    pending = id;
     $("gImg").src = c.img; $("gName").textContent = c.name;
-    $("gText").textContent = `“Is it ${c.name}?”`;
+    $("gText").innerHTML = `Ask your partner:<br><b>“Is it ${c.name}?”</b>`;
     $("modal").classList.remove("hidden");
     setGuessing(false);
     return;
@@ -313,7 +342,7 @@ function newGame(){
   const prev = state.secret;
   let pick;
   do { pick = CHARACTERS[Math.floor(Math.random()*CHARACTERS.length)].id; } while(pick===prev && CHARACTERS.length>1);
-  state = {secret:pick, down:[], locked:[], started:true};
+  state = {secret:pick, down:[], locked:[], lives:MAX_LIVES, score:state.score||0, over:null, started:true};
   $("mine").classList.add("covered");
   setGuessing(false); save(); render();
 }
@@ -325,15 +354,43 @@ $("peekBtn").onclick  = ()=> $("mine").classList.toggle("covered");
 $("helpBtn").onclick  = ()=> $("help").classList.remove("hidden");
 $("helpClose").onclick= ()=> $("help").classList.add("hidden");
 $("help").onclick     = e=>{ if(e.target.id==="help") $("help").classList.add("hidden"); };
-$("guessBtn").onclick = ()=> setGuessing(!guessing);
+$("guessBtn").onclick = ()=>{ if(!state.over) setGuessing(!guessing); };
 $("resetBtn").onclick = ()=>{ state.down=[]; save(); render(); };
 $("newBtn").onclick   = ()=>{ if(confirm("New game? / もう一回あそぶ？")) newGame(); };
-$("gClose").onclick   = ()=> $("modal").classList.add("hidden");
-$("gShow").onclick    = ()=>{ $("mine").classList.remove("covered"); $("modal").classList.add("hidden"); };
+function showEnd(){
+  const won = state.over === "won";
+  $("eTitle").textContent = won ? "You win! 🎉" : "GAME OVER";
+  $("eTitle").className = won ? "win" : "lose";
+  $("eText").textContent = won ? `+${state.livesAtWin} point${state.livesAtWin>1?"s":""}!` : "3 wrong guesses.";
+  $("eJp").textContent = won ? "せいかい！おめでとう！" : "3回まちがえました。";
+  $("eScore").innerHTML = `Total points: <b>${state.score}</b>`;
+  $("end").classList.remove("hidden");
+}
+$("gCancel").onclick = ()=>{ pending = null; $("modal").classList.add("hidden"); };
+$("gYes").onclick = ()=>{
+  $("modal").classList.add("hidden");
+  if(!pending) return;
+  state.livesAtWin = state.lives;          // more lives left = more points
+  state.score += state.lives;
+  state.over = "won"; pending = null;
+  save(); render(); showEnd();
+};
+$("gNo").onclick = ()=>{
+  $("modal").classList.add("hidden");
+  if(!pending) return;
+  if(!state.locked.includes(pending)) state.locked.push(pending);   // permanently out
+  state.down = state.down.filter(x=>x!==pending);
+  state.lives = Math.max(0, state.lives - 1);
+  pending = null;
+  if(state.lives === 0) state.over = "lost";
+  save(); render();
+  if(state.over) showEnd();
+};
+$("eNew").onclick = ()=>{ $("end").classList.add("hidden"); newGame(); };
 
 buildGrid();
 load();
-if(state.secret && state.started){ render(); showGame(); }
+if(state.secret && state.started){ render(); showGame(); if(state.over) showEnd(); }
 </script>
 </body>
 </html>
