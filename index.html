@@ -129,7 +129,8 @@
 
   /* ---------- PHONES (narrow screens): let the page scroll, stack everything ---------- */
   @media (max-width:700px){
-    html,body{height:auto;overflow:auto}
+    html{height:auto;overflow-x:hidden;overflow-y:auto;overscroll-behavior:auto}
+    body{height:auto;overflow:visible;overscroll-behavior:auto}
     #start{height:auto;min-height:100dvh;overflow:visible}
     #game{height:auto;min-height:100dvh;flex-direction:column;padding:10px}
     #left{flex:none;flex-direction:column}
