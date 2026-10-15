@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Guess Who? - Teacher</title>
+<style>
+  :root{--green:#2fa51d;--green-dark:#237a15;--green-light:#e4f5df;--red:#c8201f;--bg:#f6fbf4}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:#222;
+    font-family:"Comic Sans MS","Chalkboard SE","Hiragino Maru Gothic ProN","Hiragino Kaku Gothic ProN",sans-serif;touch-action:manipulation}
+  button{font-family:inherit;cursor:pointer}
+  .hidden{display:none !important}
+
+  #app{height:100%;height:100dvh;display:flex;flex-direction:column}
+  #bar{display:flex;gap:8px;padding:8px 12px;background:#fff;border-bottom:4px solid #111;align-items:center}
+  #bar .sp{flex:1}
+  .tab,.act{border:3px solid #111;background:#fff;border-radius:12px;padding:8px 16px;font-size:20px}
+  .tab.on{background:var(--green);color:#fff;border-color:var(--green-dark)}
+  .act:active,.tab:active{background:var(--green-light)}
+  #showBar{position:fixed;top:6px;right:6px;z-index:5;opacity:.35;border:2px solid #111;background:#fff;border-radius:10px;font-size:20px;padding:4px 10px}
+  main{flex:1;min-height:0;position:relative}
+  section.view{position:absolute;inset:0;padding:12px}
+
+  /* QR */
+  #vQR{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px}
+  #vQR h1{margin:0;font-size:clamp(48px,9vw,96px);color:var(--green);text-shadow:4px 4px 0 #bfe5b8}
+  #vQR .sub{margin:0;font-size:clamp(22px,3.4vw,36px);color:var(--red)}
+  #vQR .qrbox{background:#fff;border:6px solid #111;border-radius:20px;padding:14px;line-height:0}
+  #vQR img{width:min(52vh,70vw);height:auto;image-rendering:pixelated}
+  #vQR .url{font-size:clamp(16px,2vw,22px);color:#555}
+
+  /* grids */
+  .grid{height:100%;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(3,1fr);gap:10px}
+  @media (orientation:portrait){.grid{grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(4,1fr)}}
+  .tile{position:relative;background:#fff;border:4px solid #111;border-radius:14px;padding:0;display:flex;flex-direction:column;
+    align-items:center;overflow:hidden;min-height:0;min-width:0}
+  .tile .tname{font-size:clamp(16px,2.2vw,26px);padding:3px 0 0;line-height:1.1}
+  .tile .timg{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center;padding:2px 4px 4px}
+  .tile img{max-width:100%;max-height:100%;object-fit:contain;pointer-events:none}
+  .tile.down{background:#d3d9d1;border-color:#777}
+  .tile.down img{opacity:.14;filter:grayscale(1)}
+  .tile.down .tname{color:#888;text-decoration:line-through}
+  .tile.down::after{content:"✕";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:clamp(60px,9vw,130px);color:var(--red);opacity:.85;line-height:1;pointer-events:none}
+
+  /* profile popup */
+  #pm{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:20;padding:16px}
+  #pm .card{background:#fff;border:6px solid #111;border-radius:22px;width:min(1000px,100%);max-height:96%;
+    display:flex;gap:20px;padding:20px 26px;align-items:center;position:relative}
+  #pm .pic{flex:0 0 42%;display:flex;align-items:center;justify-content:center}
+  #pm .pic img{max-width:100%;max-height:70vh}
+  #pm .info{flex:1;font-size:clamp(24px,3.4vw,40px);line-height:1.4}
+  #pm h2{margin:0 0 6px;font-size:clamp(40px,6vw,72px);color:var(--green)}
+  #pm b{color:var(--green-dark)}
+  #pm ul{margin:0 0 8px;padding-left:1.1em}
+  .nav{position:absolute;top:50%;transform:translateY(-50%);border:4px solid #111;background:#fff;border-radius:50%;
+    width:64px;height:64px;font-size:30px;line-height:1}
+  .nav.prev{left:-12px} .nav.next{right:-12px}
+  #pmClose{position:absolute;top:8px;right:12px;border:3px solid #111;background:#fff;border-radius:10px;font-size:22px;padding:2px 12px}
+  @media (orientation:portrait){#pm .card{flex-direction:column}#pm .pic{flex:0 0 auto}#pm .pic img{max-height:34vh}}
+
+  /* passcode gate */
+  #gate{position:fixed;inset:0;background:var(--bg);z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;font-size:24px}
+  #gate input{font-size:28px;padding:8px 14px;border:4px solid #111;border-radius:12px;text-align:center;-webkit-user-select:text;user-select:text}
+  #gate .err{color:var(--red);height:1.2em}
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div>Teacher page / 先生用</div>
+  <input id="pw" type="password" autocomplete="off" placeholder="Passcode">
+  <button class="act" id="pwGo">Enter</button>
+  <div class="err" id="pwErr"></div>
+</div>
+
+<div id="app" class="hidden">
+  <div id="bar">
+    <button class="tab on" data-v="vQR">QR code</button>
+    <button class="tab" data-v="vChars">Characters</button>
+    <button class="tab" data-v="vProfiles">Profiles</button>
+    <span class="sp"></span>
+    <button class="act hidden" id="resetBtn">Reset cards</button>
+    <button class="act" id="hideBar">Hide bar</button>
+  </div>
+  <button id="showBar" class="hidden">☰</button>
+
+  <main>
+    <section id="vQR" class="view">
+      <h1>Guess Who?</h1>
+      <p class="sub">Scan the QR code to play! &nbsp;<span style="font-size:.75em">QRコードをよみとって、あそぼう！</span></p>
+      <div class="qrbox"><img src="qr.png" alt="QR code"></div>
+      <div class="url" id="url"></div>
+    </section>
+    <section id="vChars" class="view hidden"><div class="grid" id="gridChars"></div></section>
+    <section id="vProfiles" class="view hidden"><div class="grid" id="gridProfiles"></div></section>
+  </main>
+</div>
+
+<div id="pm" class="hidden">
+  <div class="card">
+    <button id="pmClose">✕</button>
+    <button class="nav prev" id="pmPrev">◀</button>
+    <div class="pic"><img id="pmImg" alt=""></div>
+    <div class="info" id="pmInfo"></div>
+    <button class="nav next" id="pmNext">▶</button>
+  </div>
+</div>
+
+<script src="characters.js"></script>
+<script>
+const PASSCODE = "eigo";    // <-- change this to whatever you like
+
+const $ = id => document.getElementById(id);
+
+/* ---- passcode gate (remembered for this browser tab only) ---- */
+function unlock(){ $("gate").classList.add("hidden"); $("app").classList.remove("hidden"); }
+function tryPass(){
+  if($("pw").value.trim().toLowerCase() === PASSCODE.toLowerCase()){
+    try{ sessionStorage.setItem("gw-teacher","1"); }catch(e){}
+    unlock();
+  } else { $("pwErr").textContent = "Wrong passcode"; $("pw").value = ""; }
+}
+$("pwGo").onclick = tryPass;
+$("pw").addEventListener("keydown", e=>{ if(e.key==="Enter") tryPass(); });
+try{ if(sessionStorage.getItem("gw-teacher")==="1") unlock(); }catch(e){}
+
+/* ---- views ---- */
+$("url").textContent = new URL("./", location.href).href;
+function show(v){
+  document.querySelectorAll(".view").forEach(el=>el.classList.toggle("hidden", el.id!==v));
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on", t.dataset.v===v));
+  $("resetBtn").classList.toggle("hidden", v!=="vChars");
+}
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>show(t.dataset.v));
+$("hideBar").onclick = ()=>{ $("bar").classList.add("hidden"); $("showBar").classList.remove("hidden"); };
+$("showBar").onclick = ()=>{ $("bar").classList.remove("hidden"); $("showBar").classList.add("hidden"); };
+
+function tileHTML(c){ return `<div class="tname">${c.name}</div><div class="timg"><img src="${c.img}" alt="${c.name}"></div>`; }
+
+/* characters view: tap to flip down / up */
+CHARACTERS.forEach(c=>{
+  const t = document.createElement("button"); t.className="tile"; t.innerHTML=tileHTML(c);
+  t.onclick = ()=>t.classList.toggle("down");
+  $("gridChars").appendChild(t);
+});
+$("resetBtn").onclick = ()=>document.querySelectorAll("#gridChars .tile").forEach(t=>t.classList.remove("down"));
+
+/* profiles view: tap a character to open a big profile card */
+let cur = 0;
+CHARACTERS.forEach((c,i)=>{
+  const t = document.createElement("button"); t.className="tile"; t.innerHTML=tileHTML(c);
+  t.onclick = ()=>openProfile(i);
+  $("gridProfiles").appendChild(t);
+});
+function openProfile(i){
+  cur = (i + CHARACTERS.length) % CHARACTERS.length;
+  const c = CHARACTERS[cur];
+  $("pmImg").src = c.img; $("pmImg").alt = c.name;
+  $("pmInfo").innerHTML = `<h2>${c.name}</h2>
+    <b>Has:</b><ul>${c.has.map(x=>`<li>${x}</li>`).join("")}</ul>
+    <b>Likes:</b><ul>${c.likes.map(x=>`<li>${x}</li>`).join("")}</ul>`;
+  $("pm").classList.remove("hidden");
+}
+$("pmPrev").onclick = e=>{ e.stopPropagation(); openProfile(cur-1); };
+$("pmNext").onclick = e=>{ e.stopPropagation(); openProfile(cur+1); };
+$("pmClose").onclick = ()=>$("pm").classList.add("hidden");
+$("pm").onclick = e=>{ if(e.target.id==="pm") $("pm").classList.add("hidden"); };
+document.addEventListener("keydown", e=>{
+  if($("pm").classList.contains("hidden")) return;
+  if(e.key==="ArrowLeft") openProfile(cur-1);
+  if(e.key==="ArrowRight") openProfile(cur+1);
+  if(e.key==="Escape") $("pm").classList.add("hidden");
+});
+</script>
+</body>
+</html>

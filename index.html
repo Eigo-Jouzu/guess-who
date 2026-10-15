@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Guess Who? - Does he/she ~?</title>
+<title>Guess Who? - Does he/she 〜?</title>
 <style>
   :root{
     --green:#2fa51d; --green-dark:#237a15; --green-light:#e4f5df;
@@ -13,13 +13,13 @@
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
   html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
     font-family:"Comic Sans MS","Chalkboard SE","Hiragino Maru Gothic ProN","Hiragino Kaku Gothic ProN",sans-serif;
-    touch-action:manipulation;overscroll-behavior:none}
+    touch-action:manipulation;overscroll-behavior:none;overflow:hidden}
   button{font-family:inherit;cursor:pointer}
   .hidden{display:none !important}
 
   /* ---------- START SCREEN ---------- */
-  #start{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    text-align:center;padding:24px;gap:18px}
+  #start{height:100%;height:100dvh;overflow-y:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:12px 24px;gap:14px}
   #start h1{font-size:clamp(48px,9vw,96px);margin:0;color:var(--green);
     text-shadow:4px 4px 0 #bfe5b8;letter-spacing:2px}
   #start .sub{font-size:clamp(22px,3.4vw,34px);color:var(--red);margin:0}
@@ -78,9 +78,6 @@
     font-size:clamp(60px,9vw,120px);color:var(--red);opacity:.85;line-height:1;pointer-events:none}
   .tile.locked{border-color:var(--red);background:#e8cfcf}
   .tile.locked::after{color:#9d1514;opacity:1}
-  #start .qr{display:flex;align-items:center;gap:16px;background:#fff;border:4px solid #111;border-radius:18px;padding:10px 20px;font-size:clamp(16px,2.2vw,22px)}
-  #start .qr img{width:clamp(120px,16vw,170px);height:auto;image-rendering:pixelated}
-  #start .qr .jp{display:block;font-size:.75em;color:#555}
   #game.guessing .tile:not(.down){border-color:var(--red);animation:pulse 1s infinite}
   @keyframes pulse{50%{transform:scale(.97)}}
 
@@ -92,7 +89,7 @@
   .cols{display:flex;gap:24px;flex-wrap:wrap}
   .cols>div{flex:1;min-width:260px}
   .cols h3{margin:6px 0;color:var(--green);font-size:26px}
-  .cols ul{margin:0;padding-left:1.1em;font-size:22px;line-height:1.5;list-style:"~ "}
+  .cols ul{margin:0;padding-left:1.1em;font-size:22px;line-height:1.5;list-style:"〜 "}
   .cols .jp{font-size:.7em;color:#555}
   .answer{color:var(--red);font-size:26px;margin:10px 0 0}
   .close{display:block;margin:14px auto 0}
@@ -136,12 +133,12 @@
 <!-- START -->
 <section id="start">
   <h1>Guess Who?</h1>
-  <p class="sub">Does he/she ~ ? &nbsp; Yes, he/she does. / No, he/she doesn’t.</p>
+  <p class="sub">Does he/she 〜 ? &nbsp; Yes, he/she does. / No, he/she doesn’t.</p>
   <div class="rules">
     <ol>
       <li>You get a secret character. Don’t show your partner!
         <span class="jp">ひみつのキャラクターが出ます。ペアに見せないでね！</span></li>
-      <li>Ask: “Does he/she have ~?” “Does he/she like ~?”
+      <li>Ask: “Does he/she have 〜?” “Does he/she like 〜?”
         <span class="jp">交代で質問しよう。</span></li>
       <li>Tap a character to flip it down (✕).
         <span class="jp">ちがうキャラクターをタップして消そう。</span></li>
@@ -150,11 +147,6 @@
     </ol>
   </div>
   <button class="big-btn" id="startBtn">START</button>
-  <div class="qr">
-    <img src="qr.png" alt="QR code">
-    <div>Scan to play on your own iPad!
-      <span class="jp">QRコードをよみとって、あそぼう！</span></div>
-  </div>
 </section>
 
 <!-- GAME -->
@@ -194,7 +186,7 @@
     <h2>Questions <span style="font-size:20px;color:#555">しつもん</span></h2>
     <div class="cols">
       <div>
-        <h3>Does he/she have ~?</h3>
+        <h3>Does he/she have 〜?</h3>
         <ul>
           <li>hair <span class="jp">(髪の色)</span></li>
           <li>a pet, a dog, a cat, a horse</li>
@@ -207,7 +199,7 @@
         </ul>
       </div>
       <div>
-        <h3>Does he/she like ~?</h3>
+        <h3>Does he/she like 〜?</h3>
         <ul>
           <li>sports</li>
           <li>reading books</li>
@@ -252,21 +244,8 @@
   </div>
 </div>
 
+<script src="characters.js"></script>
 <script>
-const CHARACTERS = [
-  {id:"kiki",     name:"Kiki",     img:"img/kiki.jpg",     has:["magic","a cat","black hair"],                                  likes:["flying"]},
-  {id:"mash",     name:"Mash",     img:"img/mash.jpg",     has:["a wand","muscles","black hair"],                               likes:["sweets","fighting"]},
-  {id:"conan",    name:"Conan",    img:"img/conan.jpg",    has:["glasses","brown hair","a bowtie"],                             likes:["helping people","playing soccer"]},
-  {id:"allmight", name:"Allmight", img:"img/allmight.jpg", has:["yellow hair"],                                                 likes:["fighting","helping people","smiling"]},
-  {id:"hermione", name:"Hermione", img:"img/hermione.jpg", has:["magic","a pet cat","brown hair"],                              likes:["studying","reading"]},
-  {id:"link",     name:"Link",     img:"img/link.jpg",     has:["a sword","a green hat, a green shirt","yellow hair","a horse"],likes:["horses","fighting"]},
-  {id:"doraemon", name:"Doraemon", img:"img/doraemon.jpg", has:["a pocket","a bell","many tools"],                              likes:["sweets"]},
-  {id:"tanjiro",  name:"Tanjiro",  img:"img/tanjiro.jpg",  has:["a sword","brown hair","a green jacket","a sister"],            likes:["helping people"]},
-  {id:"elsa",     name:"Elsa",     img:"img/elsa.jpg",     has:["magic","yellow hair","a snowman"],                             likes:["the cold","snow"]},
-  {id:"luffy",    name:"Luffy",    img:"img/luffy.jpg",    has:["a yellow hat","black hair","a ship","many friends"],           likes:["fighting"]},
-  {id:"dorami",   name:"Dorami",   img:"img/dorami.jpg",   has:["a bell","a pocket","many tools"],                              likes:["eating melonpan"]},
-  {id:"levi",     name:"Levi",     img:"img/levi.jpg",     has:["a sword (2)","a green scarf","black hair"],                    likes:["sweets","fighting"]}
-];
 
 const $ = id => document.getElementById(id);
 const KEY = "guesswho-state-v1";
